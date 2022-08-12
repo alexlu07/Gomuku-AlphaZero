@@ -75,19 +75,20 @@ class Network(nn.Module):
         return pi, v
 
 class Model():
-    def __init__(self, board_size, device="cpu"):
-        self.board_size = board_size
+    def __init__(self, board_area, device="cpu"):
+        self.board_area = board_area
         self.device = device
         
-        self.net = Network(self.board_size).to(self.device)
+        self.net = Network(self.board_area).to(self.device)
 
     def step(self, env):
-        obs = torch.from_numpy(env.get_observation()).unsqueeze(0).to(self.device)
-        log_pi, value = self.net(obs)
-        log_pi = log_pi.cpu().numpy().flatten()
-        pi = np.exp(log_pi)
-        pi = zip(env.available, pi[env.available])
-        value = value.item()
+        with torch.no_grad():
+            obs = torch.from_numpy(env.get_observation()).unsqueeze(0).to(self.device)
+            log_pi, value = self.net(obs)
+            log_pi = log_pi.cpu().numpy().flatten()
+            pi = np.exp(log_pi)
+            pi = zip(env.available, pi[env.available])
+            value = value.item()
         
         return pi, value
 
@@ -98,3 +99,9 @@ class Model():
         pi = np.exp(log_pi)
 
         return pi, log_pi, value.cpu().numpy()
+
+    def load(self, weights):
+        self.net.load_state_dict(weights)
+
+    def weights(self):
+        return self.net.state_dict()

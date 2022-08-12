@@ -19,7 +19,6 @@ class Env:
         self.board = np.zeros((self.board_size, self.board_size), dtype="int32")
         self.player = 1
         self.available = list(range(self.act_dim))
-        return self.get_observation()
 
     def step(self, action):
         assert action in self.available

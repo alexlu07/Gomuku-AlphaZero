@@ -36,19 +36,18 @@ class Node:
         return bool(self.children)
 
 class MCTS:
-    def __init__(self, model, c_puct, num_simulations, selfplay=False):
+    def __init__(self, model, config, selfplay=False):
         self.root = Node(None, 1.0)
         self.policy = model.step
 
-        self.c_puct = c_puct
-        self.num_simulations = num_simulations
+        self.config = config
         self.selfplay = selfplay
 
     def simulate(self, env):
         node = self.root
         path = [node]
         while not node.is_leaf():
-            act, node = node.select(self.c_puct)
+            act, node = node.select(self.config.c_puct)
             env.step(act)
 
             path.append(node)
@@ -65,7 +64,7 @@ class MCTS:
             path[i].update(value)
 
     def get_mcts_pi(self, env, temp=1e-3):
-        for _ in range(self.num_simulations):
+        for _ in range(self.config.num_simulations):
             self.simulate(copy.deepcopy(env))
 
         act_visits = [(act, node._n_visits)
