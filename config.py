@@ -8,7 +8,7 @@ class Config:
         self.c_puct = 5
         self.buffer_size = 10000
         self.batch_size = 512
-        self.selfplay_actors = 2
+        self.num_actors = 2
         self.update_steps = 5
         self.kl_targ = 0.02
         self.l2_const = 1e-4

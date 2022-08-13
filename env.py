@@ -18,7 +18,7 @@ class Env:
     def reset(self):
         self.board = np.zeros((self.board_size, self.board_size), dtype="int32")
         self.player = 1
-        self.available = list(range(self.act_dim))
+        self.available = list(range(self.board_area))
 
     def step(self, action):
         assert action in self.available

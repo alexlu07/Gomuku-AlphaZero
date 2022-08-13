@@ -1,0 +1,7 @@
+1: (ep_len: 59, kl: 14.9407, lr_mult: 0.6667, loss: 5.4552, entropy: 4.7301, EV_old: 0.0493, EV_new: 0.3608, sp_time: 289.6900, train_time: 25.7127)
+2: (ep_len: 45, kl: -45.4746, lr_mult: 1.5000, loss: 4.7577, entropy: 4.6397, EV_old: 0.0483, EV_new: 0.9227, sp_time: 228.8330, train_time: 16.7640)
+3: (ep_len: 43, kl: 7.4234, lr_mult: 1.0000, loss: 6.0805, entropy: 4.6265, EV_old: -0.6210, EV_new: 0.0194, sp_time: 210.1230, train_time: 15.9833)
+4: (ep_len: 40, kl: 6.4003, lr_mult: 0.6667, loss: 6.2959, entropy: 4.6496, EV_old: -0.2098, EV_new: -0.1821, sp_time: 178.5073, train_time: 7.0063)
+5: (ep_len: 50, kl: 4.5340, lr_mult: 0.4444, loss: 6.1258, entropy: 4.6655, EV_old: -0.0613, EV_new: -0.0710, sp_time: 258.6978, train_time: 7.1170)
+6: (ep_len: 53, kl: 3.1828, lr_mult: 0.2963, loss: 6.0595, entropy: 4.6760, EV_old: -0.0165, EV_new: -0.0373, sp_time: 258.1348, train_time: 6.9742)
+7: (ep_len: 44, kl: 2.0829, lr_mult: 0.1975, loss: 5.9060, entropy: 4.6840, EV_old: 0.0467, EV_new: 0.0355, sp_time: 199.8701, train_time: 7.2004)

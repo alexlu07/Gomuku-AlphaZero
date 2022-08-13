@@ -1,16 +1,19 @@
+import random
+import ray
+import time
+import copy
 import torch
 from torch.optim import Adam
 import numpy as np
-import time
 from collections import deque
-import ray
-import copy
 
 from model import Model
 from selfplay import Selfplay
+from env import Env
+from config import Config
 
 class Trainer:
-    def __init__(self, env, config):
+    def __init__(self, env: Env, config: Config):
         self.env = env
         self.board_size = self.env.board_size
         self.board_area = self.env.board_area
@@ -20,74 +23,84 @@ class Trainer:
         self.epoch = 0
         
         self.selfplay_actors = [
-            Selfplay.remote(copy.deepcopy(self.env), self.config) for i in range(self.config.selfplay_actors)]
-        self.data_buffer = deque(max_len=config.buffer_size)
+            Selfplay.remote(copy.deepcopy(self.env), self.config) for i in range(self.config.num_actors)]
+        self.data_buffer = deque(maxlen=config.buffer_size)
 
-        self.model = Model(self.board_area, device=self.train_device)
+        self.model = Model(self.board_area, device=self.config.train_device)
         self.optimizer = Adam(self.model.parameters(), weight_decay=config.l2_const)
 
-    # def train_one_epoch(self):
-    #     ep_lens = []
-    #     ep_rets = []
+    def train_one_epoch(self):
+        start = time.time()
 
-    #     start = time.time()
+        ep_len = self.launch_selfplay_jobs()
 
-    #     timesteps = 0
-    #     while timesteps < self.timesteps_per_batch:
-    #         t, game_len, game_ret = self.play_game()
-            
-    #         ep_lens.append(game_len)
-    #         ep_rets.append(game_ret)
-    #         timesteps += t
+        selfplay_time = time.time() - start
+        start = time.time()
 
-    #     selfplay_time = time.time() - start
-    #     start = time.time()
+        # if len(self.data_buffer) < self.config.batch_size:
+        #     print("Running selfplay again: not enough data")
+        #     self.launch_selfplay_jobs()
+        data = random.sample(self.data_buffer, self.config.batch_size)
+        state_batch = torch.as_tensor(np.array([i[0] for i in data]), dtype=torch.float32)
+        mcts_pi_batch = torch.as_tensor(np.array([i[1] for i in data]), dtype=torch.float32)
+        reward_batch = torch.as_tensor([i[2] for i in data], dtype=torch.float32)
 
-    #     data = self.history.get()
+        old_log_pi, old_v = self.model.batch_step(state_batch)
 
-    #     pi_loss_old = self.get_pi_loss(data).item()
-    #     v_loss_old = self.get_vf_loss(data).item()
+        for i in range(self.config.update_steps):
+            self.optimizer.zero_grad()
+            self.update_optimizer_lr()
 
-    #     for i in range(self.train_pi_iters):
-    #         self.pi_optimizer.zero_grad()
-    #         pi_loss = self.get_pi_loss(data)
-    #         pi_loss.backward()
-    #         self.pi_optimizer.step()
+            log_pi, v = self.model.batch_step(state_batch)
 
-    #     for i in range(self.train_v_iters):
-    #         self.vf_optimizer.zero_grad()
-    #         vf_loss = self.get_vf_loss(data)
-    #         vf_loss.backward()
-    #         self.vf_optimizer.step()
+            loss_pi = -torch.mean(torch.sum(mcts_pi_batch*log_pi, dim=1))
+            loss_v = ((v - reward_batch)**2).mean()
+            loss = loss_pi + loss_v
 
-    #     training_time = time.time() - start
+            loss.backward()
+            self.optimizer.step()
 
-    #     self.epoch += 1
+            entropy = -torch.mean(torch.sum(torch.exp(log_pi) * log_pi, dim=1)).item()
 
-    #     return pi_loss_old, v_loss_old, ep_lens, ep_rets, selfplay_time, training_time
+            kl = torch.mean(torch.sum(
+                torch.exp(old_log_pi) * (old_log_pi - log_pi), 
+                dim=1)).item()
 
-                
+            if kl > self.config.kl_targ * 4:
+                break
+
+        if kl > self.config.kl_targ * 2 and self.config.lr_multiplier > 0.1:
+            self.config.lr_multiplier /= 1.5
+        elif kl < self.config.kl_targ / 2 and self.config.lr_multiplier < 10:
+            self.config.lr_multiplier *= 1.5
+
+        explained_var_old = (1 -
+                             torch.var(reward_batch - old_v.flatten()) /
+                             torch.var(reward_batch)).item()
+        explained_var_new = (1 -
+                             torch.var(reward_batch - v.flatten()) /
+                             torch.var(reward_batch)).item()
+
+
+        training_time = time.time() - start
+
+        self.epoch += 1
+
+        return ep_len, kl, self.config.lr_multiplier, loss.item(), entropy, explained_var_old, explained_var_new, selfplay_time, training_time
+
     def launch_selfplay_jobs(self):
+        ep_lens = []
         w = ray.put(self.model.weights())
         data = [actor.run.remote(w, self.epoch) for actor in self.selfplay_actors]
-        for d in data:
-            self.data_buffer.extend(ray.get(d))
+        for d, l in ray.get(data):
+            ep_lens.append(l)
+            self.data_buffer.extend(d)
 
-    # def get_pi_loss(self, data):
-    #     obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
+        return sum(ep_lens) / self.config.num_actors
 
-    #     pi = self.model.actor_dist(obs)
-    #     logp = pi.log_prob(act)
-    #     ratio = torch.exp(logp - logp_old)
-    #     clip_adv = torch.clamp(ratio, 1-self.clip_ratio, 1+self.clip_ratio) * adv
-    #     loss_pi = -(torch.min(ratio * adv, clip_adv)).mean()
-
-    #     return loss_pi
-        
-    
-    # def get_vf_loss(self, data):
-    #     obs, ret = data['obs'], data['ret']
-    #     return ((self.model.critic(obs) - ret)**2).mean()
+    def update_optimizer_lr(self):
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.config.lr * self.config.lr_multiplier
 
     def save_state(self):
         torch.save({

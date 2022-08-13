@@ -32,7 +32,7 @@ class Node:
     def UCB_value(self, c_puct):
         return self.Q + c_puct * self.P * math.sqrt(self.parent.N) / (1+self.N)
 
-    def is_leaf(self):
+    def not_leaf(self):
         return bool(self.children)
 
 class MCTS:
@@ -46,7 +46,7 @@ class MCTS:
     def simulate(self, env):
         node = self.root
         path = [node]
-        while not node.is_leaf():
+        while node.not_leaf():
             act, node = node.select(self.config.c_puct)
             env.step(act)
 
@@ -59,7 +59,7 @@ class MCTS:
         else:
             value = winner * env.player
 
-        for i in range(len(path), -1, -1):
+        for i in range(len(path)-1, -1, -1):
             value *= -1
             path[i].update(value)
 
@@ -67,7 +67,7 @@ class MCTS:
         for _ in range(self.config.num_simulations):
             self.simulate(copy.deepcopy(env))
 
-        act_visits = [(act, node._n_visits)
+        act_visits = [(act, node.N)
                       for act, node in self.root.children.items()]
         actions, visits = zip(*act_visits)
 
