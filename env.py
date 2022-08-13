@@ -55,7 +55,7 @@ class Env:
                 for d in directions:
                     x, y = i, j
 
-                    x_end, y_end = x + 4*d[0], y + 4*d[0]
+                    x_end, y_end = x + 4*d[0], y + 4*d[1]
                     if (x_end < 0 or x_end >= self.board_size or 
                         y_end < 0 or y_end >= self.board_size): continue
 
