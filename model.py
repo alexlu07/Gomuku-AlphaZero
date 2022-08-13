@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from torch.distributions.categorical import Categorical
 
 from env import Env
 
@@ -39,7 +38,7 @@ class Network(nn.Module):
         self.conv = conv3x3(4, 128)
         self.bn = nn.BatchNorm2d(128)
 
-        self.res_blocks = [ResidualBlock(128) for i in range(6)]
+        self.res_blocks = nn.ModuleList([ResidualBlock(128) for i in range(6)])
 
         self.policy_conv1x1 = nn.Conv2d(128, 2, 1, bias=False)
         self.policy_bn = nn.BatchNorm2d(2)

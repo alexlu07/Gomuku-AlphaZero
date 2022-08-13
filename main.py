@@ -1,4 +1,3 @@
-from distutils.command.config import config
 import torch
 import time
 
@@ -90,6 +89,6 @@ def play(epoch, first=True):
         player = 1 - player
 
 if __name__ == "__main__":
-    train(save=False, load=False)
+    train()
     # watch(302, 302)
     # play(302)
