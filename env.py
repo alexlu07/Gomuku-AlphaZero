@@ -48,6 +48,7 @@ class Env:
                 if self.board[i][j] == 0:
                     has_legal_actions = True
                     continue
+
                 # value-value at a coord, i-row, j-col
                 player = self.board[i][j]
                 # check if there exist 5 in a line
@@ -56,7 +57,7 @@ class Env:
 
                     x_end, y_end = x + 4*d[0], y + 4*d[0]
                     if (x_end < 0 or x_end >= self.board_size or 
-                        y_end < 0 or y_end >= self.board_size): break
+                        y_end < 0 or y_end >= self.board_size): continue
 
                     count = 0
                     for _ in range(5):
@@ -80,11 +81,13 @@ class Env:
             for col in range(self.board_size):
                 ch = self.board[row][col]
                 if ch == 0:
-                    print(".", end=" ")
+                    piece = "."
                 elif ch == 1:
-                    print("X", end=" ")
+                    piece = "Ẍ" if self.last_move == [row, col] else "X"
                 elif ch == -1:
-                    print("O", end=" ")
+                    piece = "@" if self.last_move == [row, col] else "O"
+
+                print(piece, end=" ")
             print()
 
     def human_input_to_action(self):

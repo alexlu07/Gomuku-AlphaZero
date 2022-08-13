@@ -33,12 +33,13 @@ def train(save=True, load=True):
 
 def watch(a, b):
     env = Env()
+    config = Config()
 
     model1 = Model(env.board_area)
     model2 = Model(env.board_area)
 
-    model1.load_state_dict(torch.load(f"./results/weights/{a}.pt")["model"])
-    model2.load_state_dict(torch.load(f"./results/weights/{b}.pt")["model"])
+    model1.load(torch.load(f"./results/weights/{a}.pt")["model"])
+    model2.load(torch.load(f"./results/weights/{b}.pt")["model"])
 
     player1 = MCTS(model1, config)
     player2 = MCTS(model2, config)
@@ -88,7 +89,24 @@ def play(epoch, first=True):
 
         player = 1 - player
 
+def play_manual():
+    env = Env()
+
+
+    done = False
+    env.reset()
+    env.render()
+
+    while not done:
+        _, act = env.human_input_to_action()
+
+        env.step(act)
+        env.render()
+
+        done, winner = env.is_finished()
+
 if __name__ == "__main__":
-    train()
-    # watch(302, 302)
+    train(load=False)
+    # watch(340, 280)
+    # play_manual()
     # play(302)

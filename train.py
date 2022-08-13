@@ -1,4 +1,5 @@
 import random
+from tabnanny import check
 import ray
 import time
 import copy
@@ -37,9 +38,9 @@ class Trainer:
         selfplay_time = time.time() - start
         start = time.time()
 
-        # if len(self.data_buffer) < self.config.batch_size:
-        #     print("Running selfplay again: not enough data")
-        #     self.launch_selfplay_jobs()
+        while len(self.data_buffer) < self.config.batch_size:
+            print("Running selfplay again: not enough data")
+            self.launch_selfplay_jobs()
         data = random.sample(self.data_buffer, self.config.batch_size)
         state_batch = torch.as_tensor(np.array([i[0] for i in data]), dtype=torch.float32)
         mcts_pi_batch = torch.as_tensor(np.array([i[1] for i in data]), dtype=torch.float32)
@@ -106,6 +107,8 @@ class Trainer:
         torch.save({
             "model": self.model.weights(),
             "optimizer": self.optimizer.state_dict(),
+            "lr_mult": self.config.lr_multiplier,
+            "buffer": self.data_buffer,
             "epoch": self.epoch,
         }, f"./results/weights/{self.epoch}.pt")
 
@@ -114,4 +117,9 @@ class Trainer:
 
         self.model.load(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+        try:
+            self.config.lr_multiplier = checkpoint["lr_mult"]
+            self.data_buffer = checkpoint["buffer"]
+        except:
+            print("no lr_mult or data_buffer")
         self.epoch = checkpoint["epoch"]
